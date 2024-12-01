@@ -5,34 +5,72 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Firebase Sensor Data with Radar</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Chart.js library -->
-  <!-- Bootstrap CSS untuk layout dan styling -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+
   <style>
-    /* CSS untuk memformat radar chart */
+    /* CSS untuk radar */
+    .radar {
+      position: relative;
+      overflow: hidden;
+      width: 300px;
+      aspect-ratio: 1;
+      background: #000;
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    }
+
+    .beam {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: inherit;
+      aspect-ratio: inherit;
+      background: rgba(255, 255, 255, 0.5);
+      animation: 5s rotate linear infinite;
+    }
+
+    @keyframes rotate {
+      100% {
+        transform: rotate(1turn);
+      }
+    }
+
+    .dot {
+      position: absolute;
+      left: calc(var(--x) * 100%);
+      top: calc(var(--y) * 100%);
+      border-radius: 50%;
+      width: 4px;
+      height: 4px;
+      margin: -2px;
+      background: #cf5;
+      box-shadow: 0 0 10px 5px rgba(100, 255, 0, 0.5);
+      opacity: 0;
+    }
+
     .container {
       text-align: center;
       margin-top: 50px;
     }
 
-    #radarChart {
-      border-radius: 50%; /* Membuat chart berbentuk lingkaran */
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Menambahkan bayangan pada chart */
-      max-width: 500px; /* Ukuran maksimal chart */
-      max-height: 500px; /* Ukuran maksimal chart */
-      margin: 0 auto; /* Centering chart */
-    }
-
     h1, h2 {
       font-family: 'Arial', sans-serif;
     }
-
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Firebase Sensor Data</h1>
     <h2>Distance Sensor Radar</h2>
-    <canvas id="radarChart" width="400" height="400"></canvas>
+    <div class="radar">
+      <div class="beam"></div>
+      <!-- Example dots, to be updated dynamically with Firebase data -->
+      <div class="dot" style="--x:0.7; --y:0.2"></div>
+      <div class="dot" style="--x:0.2; --y:0.3"></div>
+      <div class="dot" style="--x:0.6; --y:0.1"></div>
+      <div class="dot" style="--x:0.4; --y:0.6"></div>
+      <div class="dot" style="--x:0.9; --y:0.7"></div>
+    </div>
   </div>
 
   <script type="module">
@@ -56,78 +94,46 @@
     const distanceDataRef = ref(database, '/sensorData/distance');
     const servoAngleDataRef = ref(database, '/sensorData/servoAngle');
 
-    const ctx = document.getElementById('radarChart').getContext('2d');
-    let radarChart;
+    const elRadar = document.querySelector('.radar');
+    const elBeam = elRadar.querySelector('.beam');
+    const elsDot = elRadar.querySelectorAll('.dot');
 
-    // Initialize radar chart
-    function createRadarChart(distance, servoAngle) {
-      if (radarChart) {
-        radarChart.destroy();  // Destroy the previous chart before creating a new one
-      }
+    const PI = Math.PI;
+    const TAU = PI * 2;
+    const mod = (n, m) => ((n % m) + m) % m; // Fix negative modulo
 
-      // Convert servo angle to radians for chart calculation
-      const angleInRadians = (servoAngle % 360) * (Math.PI / 180); // Convert degrees to radians
+    const getCSSVal = (e, v) => e.style.getPropertyValue(v);
 
-      radarChart = new Chart(ctx, {
-        type: 'radar',
-        data: {
-          labels: ['North', 'East', 'South', 'West'], // Labels for directions
-          datasets: [{
-            label: 'Distance Sensor Data',
-            data: [
-              distance * Math.cos(angleInRadians),   // North
-              distance * Math.sin(angleInRadians),   // East
-              distance * Math.cos(angleInRadians + Math.PI), // South
-              distance * Math.sin(angleInRadians + Math.PI)  // West
-            ], 
-            backgroundColor: 'rgba(54, 162, 235, 0.2)',
-            borderColor: 'rgba(54, 162, 235, 1)',
-            borderWidth: 2
-          }]
-        },
-        options: {
-          responsive: true,
-          animation: {
-            duration: 0  // Set animation duration to 0 for smooth updates
-          },
-          scales: {
-            r: {
-              suggestedMin: 0,
-              suggestedMax: 100, // Adjust as needed for sensor range
-              angleLines: {
-                display: true,
-              },
-              gridLines: {
-                circular: true
-              }
-            }
-          }
-        }
+    const updateRadar = (distance, angle) => {
+      const beamAngle = mod(angle, 360);  // Normalize the angle
+
+      elsDot.forEach((elDot, i) => {
+        const x = parseFloat(getCSSVal(elDot, "--x")) - 0.5;
+        const y = parseFloat(getCSSVal(elDot, "--y")) - 0.5;
+        const dotAngle = mod(Math.atan2(y, x), TAU);
+        const opacity = mod(dotAngle - beamAngle * (PI / 180), TAU) / TAU;
+        elDot.style.opacity = opacity;
       });
-    }
 
-    // Function to update radar chart every time the data changes
-    function updateRadarChart() {
-      onValue(distanceDataRef, (snapshot) => {
-        const distance = snapshot.val();
-        const servoAngleSnapshot = ref(database, '/sensorData/servoAngle');
-        onValue(servoAngleSnapshot, (angleSnapshot) => {
-          const servoAngle = angleSnapshot.val();
-          if (distance !== null && servoAngle !== null) {
-            createRadarChart(distance, servoAngle);
+      elBeam.style.transform = `rotate(${beamAngle}deg)`;  // Update the beam rotation
+    };
+
+    // Listen to Firebase data and update radar
+    onValue(distanceDataRef, (snapshot) => {
+      const distance = snapshot.val();
+      if (distance !== null) {
+        onValue(servoAngleDataRef, (angleSnapshot) => {
+          const angle = angleSnapshot.val();
+          if (angle !== null) {
+            updateRadar(distance, angle);  // Update radar based on new data
           }
         });
-      });
-    }
-
-    // Set an interval to continuously update the chart with data from Firebase
-    setInterval(updateRadarChart, 1000); // Update chart every second
-
+      }
+    });
   </script>
 
   <!-- Bootstrap JS (optional, for advanced Bootstrap features) -->
   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
-
 </body>
 </html>
