@@ -5,43 +5,41 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Radar Scanner</title>
   <style>
-    .radar {
-      position: relative;
-      overflow: hidden;
-      width: 300px;
-      aspect-ratio: 1;
-      background: #000 url(https://i.sstatic.net/vY6Tl.png) center / cover;
-      border-radius: 50%;
-    }
+.radar {
+  position: relative;
+  overflow: hidden;
+  width: 300px;
+  aspect-ratio: 1;
+  background: #000 url(https://i.sstatic.net/vY6Tl.png) center / cover;
+  border-radius: 50%;
+  z-index: 1; /* Menempatkan gambar latar belakang di belakang */
+}
 
-    .beam {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: inherit;
-      aspect-ratio: inherit;
-      background: url(https://i.sstatic.net/GCbf1.png) center / cover;
-      animation: rotate 5s linear infinite;
-    }
+.beam {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: inherit;
+  aspect-ratio: inherit;
+  background: url(https://i.sstatic.net/GCbf1.png) center / cover;
+  animation: rotate 5s linear infinite;
+  z-index: 2; /* Beam berada di atas gambar latar belakang */
+}
 
-    @keyframes rotate {
-      100% {
-        transform: rotate(1turn);
-      }
-    }
+.dot {
+  position: absolute;
+  left: calc(var(--x) * 100%);
+  top: calc(var(--y) * 100%);
+  border-radius: 50%;
+  width: 4px;
+  height: 4px;
+  margin: -2px;
+  background: #cf5;
+  box-shadow: 0 0 10px 5px rgba(100, 255, 0, 0.5);
+  opacity: 0;
+  z-index: 3; /* Dot berada di atas beam */
+}
 
-    .dot {
-      position: absolute;
-      left: calc(var(--x) * 100%);
-      top: calc(var(--y) * 100%);
-      border-radius: 50%;
-      width: 4px;
-      height: 4px;
-      margin: -2px;
-      background: #cf5;
-      box-shadow: 0 0 10px 5px rgba(100, 255, 0, 0.5);
-      opacity: 0;
-    }
   </style>
 </head>
 <body>
