@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Radar Animation</title>
+  <title>Radar Scanner</title>
   <style>
     .radar {
       position: relative;
@@ -21,12 +21,12 @@
       width: inherit;
       aspect-ratio: inherit;
       background: url(https://i.sstatic.net/GCbf1.png) center / cover;
-      animation: 5s rotate linear infinite;
+      animation: rotate 5s linear infinite;
     }
 
     @keyframes rotate {
       100% {
-        rotate: 1turn;
+        transform: rotate(1turn);
       }
     }
 
@@ -65,7 +65,10 @@
       const elsDot = elRadar.querySelectorAll(".dot");
 
       const update = () => {
-        const beamAngle = parseFloat(getComputedStyle(elBeam).getPropertyValue("rotate")) * PI / 180 || 0;
+        // Get the beam's rotation from transform matrix
+        const transform = getComputedStyle(elBeam).transform;
+        const matrix = new WebKitCSSMatrix(transform);
+        const beamAngle = matrix.m11 === 1 && matrix.m12 === 0 ? 0 : Math.atan2(matrix.m21, matrix.m11);
 
         elsDot.forEach(elDot => {
           const x = getCSSVal(elDot, "--x") - 0.5;
