@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firebase Sensor Data</title>
+</head>
+<body>
+  <h1>Firebase Sensor Data</h1>
+  
+  <h2>Wi-Fi Networks</h2>
+  <div id="wifiData"></div>
+
+  <h2>Distance Sensor</h2>
+  <div id="distanceData">Loading...</div>
+
+  <script type="module">
+    // Import Firebase SDK
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+
+    // Konfigurasi Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyDRZfCQmKFdjUwuW-lq4P5S3k2wntpP26E",
+      authDomain: "wifiscanfirebase.firebaseapp.com",
+      databaseURL: "https://wifiscanfirebase-default-rtdb.firebaseio.com",
+      projectId: "wifiscanfirebase",
+      storageBucket: "wifiscanfirebase.appspot.com",
+      messagingSenderId: "586448397048",
+      appId: "1:586448397048:web:dea539e352789765a1910d",
+      measurementId: "G-CZXPR54MTV"
+    };
+
+    // Inisialisasi Firebase
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
+
+    // Referensi ke data Wi-Fi
+    const wifiDataRef = ref(database, '/device/wifiScan');
+    const distanceDataRef = ref(database, '/sensorData/distance');
+
+    // Fungsi untuk menampilkan data Wi-Fi
+    onValue(wifiDataRef, (snapshot) => {
+      const wifiData = snapshot.val();
+      const wifiDataContainer = document.getElementById('wifiData');
+      wifiDataContainer.innerHTML = ""; // Bersihkan kontainer sebelum menambahkan data baru
+
+      if (wifiData) {
+        for (const [key, network] of Object.entries(wifiData)) {
+          const networkInfo = document.createElement('p');
+          networkInfo.textContent = `SSID: ${network.SSID}, RSSI: ${network.RSSI}`;
+          wifiDataContainer.appendChild(networkInfo);
+        }
+      } else {
+        wifiDataContainer.innerHTML = "No Wi-Fi networks found.";
+      }
+    });
+
+    // Fungsi untuk menampilkan data jarak
+    onValue(distanceDataRef, (snapshot) => {
+      const distance = snapshot.val();
+      const distanceDataContainer = document.getElementById('distanceData');
+      
+      if (distance !== null) {
+        distanceDataContainer.textContent = `Distance: ${distance} cm`;
+      } else {
+        distanceDataContainer.textContent = "No distance data available.";
+      }
+    });
+  </script>
+</body>
+</html>
