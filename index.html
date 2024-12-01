@@ -152,7 +152,7 @@
     const radarSize = radar.offsetWidth;  // Ukuran radar (400px)
 
     const maxDistance = radarSize / 2;  // Radius radar dalam piksel (200px)
-    const distanceInPixels = Math.min(distance, 300) / 300 * maxDistance;  // Ubah distance ke dalam piksel dan batasi agar tidak lebih dari 200px
+    const distanceInPixels = Math.min(distance, 500) / 500 * maxDistance;  // Ubah distance ke dalam piksel dan batasi agar tidak lebih dari 200px
 
     const angleInRadians = (servoAngle - 90) * Math.PI / 180;  // Mengonversi angle ke radian dan mengubah referensi ke atas
     const x = distanceInPixels * Math.cos(angleInRadians);
