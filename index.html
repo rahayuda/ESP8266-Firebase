@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firebase Sensor Data with Radar</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Chart.js library -->
+</head>
+<body>
+  <h1>Firebase Sensor Data</h1>
+  
+  <h2>Distance Sensor Radar</h2>
+  <canvas id="radarChart" width="400" height="400"></canvas>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDRZfCQmKFdjUwuW-lq4P5S3k2wntpP26E",
+      authDomain: "wifiscanfirebase.firebaseapp.com",
+      databaseURL: "https://wifiscanfirebase-default-rtdb.firebaseio.com",
+      projectId: "wifiscanfirebase",
+      storageBucket: "wifiscanfirebase.appspot.com",
+      messagingSenderId: "586448397048",
+      appId: "1:586448397048:web:dea539e352789765a1910d",
+      measurementId: "G-CZXPR54MTV"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
+
+    const distanceDataRef = ref(database, '/sensorData/distance');
+
+    const ctx = document.getElementById('radarChart').getContext('2d');
+    let radarChart;
+
+    // Initialize radar chart
+    function createRadarChart(distance) {
+      if (radarChart) {
+        radarChart.destroy();
+      }
+
+      radarChart = new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels: ['North', 'East', 'South', 'West'], // Adjust as needed
+          datasets: [{
+            label: 'Distance Sensor Data',
+            data: [distance, distance, distance, distance], // Dummy data
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            r: {
+              suggestedMin: 0,
+              suggestedMax: 100 // Adjust as needed for sensor range
+            }
+          }
+        }
+      });
+    }
+
+    // Update radar chart with data from Firebase
+    onValue(distanceDataRef, (snapshot) => {
+      const distance = snapshot.val();
+      if (distance !== null) {
+        createRadarChart(distance);
+      }
+    });
+  </script>
+</body>
+</html>
