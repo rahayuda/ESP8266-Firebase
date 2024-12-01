@@ -31,23 +31,32 @@
     const database = getDatabase(app);
 
     const distanceDataRef = ref(database, '/sensorData/distance');
+    const servoAngleDataRef = ref(database, '/sensorData/servoAngle');
 
     const ctx = document.getElementById('radarChart').getContext('2d');
     let radarChart;
 
     // Initialize radar chart
-    function createRadarChart(distance) {
+    function createRadarChart(distance, servoAngle) {
       if (radarChart) {
         radarChart.destroy();
       }
 
+      // Convert servo angle to radians for chart calculation
+      const angleInRadians = (servoAngle % 360) * (Math.PI / 180); // Convert degrees to radians
+
       radarChart = new Chart(ctx, {
         type: 'radar',
         data: {
-          labels: ['North', 'East', 'South', 'West'], // Adjust as needed
+          labels: ['North', 'East', 'South', 'West'], // Labels for directions
           datasets: [{
             label: 'Distance Sensor Data',
-            data: [distance, distance, distance, distance], // Dummy data
+            data: [
+              distance * Math.cos(angleInRadians),   // North
+              distance * Math.sin(angleInRadians),   // East
+              distance * Math.cos(angleInRadians + Math.PI), // South
+              distance * Math.sin(angleInRadians + Math.PI)  // West
+            ], 
             backgroundColor: 'rgba(54, 162, 235, 0.2)',
             borderColor: 'rgba(54, 162, 235, 1)',
             borderWidth: 2
@@ -68,8 +77,9 @@
     // Update radar chart with data from Firebase
     onValue(distanceDataRef, (snapshot) => {
       const distance = snapshot.val();
-      if (distance !== null) {
-        createRadarChart(distance);
+      const servoAngle = (snapshot.val() !== null ? snapshot.val() : 0);
+      if (distance !== null && servoAngle !== null) {
+        createRadarChart(distance, servoAngle);
       }
     });
   </script>
