@@ -1,94 +1,155 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Radar Scanner</title>
-  <style>
-.radar {
-  position: relative;
-  overflow: hidden;
-  width: 300px;
-  aspect-ratio: 1;
-  background: #000 url(https://i.sstatic.net/vY6Tl.png) center / cover;
-  border-radius: 50%;
-  z-index: 1; /* Menempatkan gambar latar belakang di belakang */
-}
+	<title>Radar with Multiple Dots</title>
+	<style type="text/css">
+		#radar {
+			position:relative;
+			width:400px;
+			height:400px;
+			margin:20px auto;
+			border:3px solid #0c0;
+			background-color:#020;
+			border-radius:0%;
+		}
+		#radar>* { position: absolute; }
+		.beacon {
+			left: 50%;
+			top: 50%;
+			border-style: solid;
+			border-width: 8px 200px 8px 0;
+			border-color: transparent;
+			margin-top: -8px;
+			transform-origin: 0 50%;
+		}
+		#beacon {border-right-color:#0c0; animation: spin 15s 0s linear infinite;}
+        #beacon-25 {border-right-color: rgba(0,204,0,0.25); animation: spin 15s 0.09s linear infinite;}
+		#beacon-50 {border-right-color: rgba(0,204,0,0.5); animation: spin 15s 0.06s linear infinite;}
+        #beacon-75 {border-right-color: rgba(0,204,0,0.75); animation: spin 15s 0.06s linear infinite;}
+		
+		.circle {
+			left: 50%;
+			top: 50%;
+			border: 1px solid #0c0;
+			border-radius: 50%;
+		}
+		#circle-big { width: 300px; height: 300px; margin: -150px; }
+		#circle-medium { width: 200px; height: 200px; margin: -100px; }
+		#circle-small { width: 100px; height: 100px; margin: -50px; }
+		.dot {
+			width: 10px;
+			height: 10px;
+			background-color: #ffffff;
+			border-radius: 50%;
+			animation: blink 1.5s linear infinite;
+		}
+		#vertical {
+			left: 50%;
+			top: 0;
+			bottom: 0;
+			border-left: 1px solid #0c0;
+		}
+		#horizontal {
+			top: 50%;
+			left: 0;
+			right: 0;
+			border-top: 1px solid #0c0;
+		}
 
-.beam {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: inherit;
-  aspect-ratio: inherit;
-  background: url(https://i.sstatic.net/GCbf1.png) center / cover;
-  animation: rotate 5s linear infinite;
-  z-index: 2; /* Beam berada di atas gambar latar belakang */
-}
+		@keyframes spin {
+			from { transform: rotate(0); }
+			to { transform: rotate(360deg); }
+		}
 
-@keyframes rotate {
-  100% {
-    rotate: 1turn;
-  }
-}
-    
-.dot {
-  position: absolute;
-  left: calc(var(--x) * 100%);
-  top: calc(var(--y) * 100%);
-  border-radius: 50%;
-  width: 4px;
-  height: 4px;
-  margin: -2px;
-  background: #cf5;
-  box-shadow: 0 0 10px 5px rgba(100, 255, 0, 0.5);
-  opacity: 0;
-  z-index: 3; /* Dot berada di atas beam */
-}
-
-  </style>
+		@keyframes blink {
+			0% { opacity: 0.3; }
+			50% { opacity: 1; }
+			100% { opacity: 0.3; }
+		}
+	</style>
 </head>
 <body>
-  <div class="radar">
-    <div class="beam"></div>
-    <div class="dot" style="--x:0.7; --y:0.2"></div>
-    <div class="dot" style="--x:0.2; --y:0.3"></div>
-    <div class="dot" style="--x:0.6; --y:0.1"></div>
-    <div class="dot" style="--x:0.4; --y:0.6"></div>
-    <div class="dot" style="--x:0.9; --y:0.7"></div>
-  </div>
+	<div id="radar">
+		<div class="beacon" id="beacon"></div>
+		<div class="beacon" id="beacon-25"></div>
+		<div class="beacon" id="beacon-50"></div>
+        <div class="beacon" id="beacon-75"></div>		
+		<div class="circle" id="circle-big"></div>
+		<div class="circle" id="circle-medium"></div>
+		<div class="circle" id="circle-small"></div>
+		<div id="vertical"></div>
+		<div id="horizontal"></div>
+		
+		<!-- <div class="dot" style="top: 50%; left: 10%;"></div> -->
+		
 
-  <script>
-    const getCSSVal = (e, v) => e.style.getPropertyValue(v);
-    const mod = (n, m) => ((n % m) + m) % m; // Fix negative Modulo
-    const PI = Math.PI;
-    const TAU = PI * 2;
+		<!-- Add more dots here -->
+	</div>
+</body>
 
-    const radar = (elRadar) => {
-      const elBeam = elRadar.querySelector(".beam");
-      const elsDot = elRadar.querySelectorAll(".dot");
+  <script type="module">
+    // Import Firebase SDK
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
 
-      const update = () => {
-        // Get the beam's rotation from transform matrix
-        const transform = getComputedStyle(elBeam).transform;
-        const matrix = new WebKitCSSMatrix(transform);
-        const beamAngle = matrix.m11 === 1 && matrix.m12 === 0 ? 0 : Math.atan2(matrix.m21, matrix.m11);
-
-        elsDot.forEach(elDot => {
-          const x = getCSSVal(elDot, "--x") - 0.5;
-          const y = getCSSVal(elDot, "--y") - 0.5;
-          const dotAngle = mod(Math.atan2(y, x), TAU);
-          const opacity = mod(dotAngle - beamAngle, TAU) / TAU;
-          elDot.style.opacity = opacity;
-        });
-
-        requestAnimationFrame(update);
-      };
-
-      update();
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDRZfCQmKFdjUwuW-lq4P5S3k2wntpP26E",
+      authDomain: "wifiscanfirebase.firebaseapp.com",
+      databaseURL: "https://wifiscanfirebase-default-rtdb.firebaseio.com",
+      projectId: "wifiscanfirebase",
+      storageBucket: "wifiscanfirebase.appspot.com",
+      messagingSenderId: "586448397048",
+      appId: "1:586448397048:web:dea539e352789765a1910d",
+      measurementId: "G-CZXPR54MTV"
     };
 
-    document.querySelectorAll(".radar").forEach(radar);
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
+
+    // Reference to sensor data
+    const distanceDataRef = ref(database, '/sensorData/distance');
+    const servoAngleDataRef = ref(database, '/sensorData/servoAngle');
+
+    // Function to add a dot to the radar based on angle and distance
+    function addDotToRadar(servoAngle, distance) {
+      const radar = document.getElementById('radar');
+      const radarSize = radar.offsetWidth;  // Radar size (400px)
+
+      // Limit maximum distance to 400 cm and scale it to 200px
+      const maxDistance = radarSize / 2;  // Radius of the radar in pixels (200px)
+      const distanceInPixels = Math.min(distance, 400) / 400 * maxDistance;  // Convert distance to pixels
+
+      // Convert angle to radians (adjust to start from top)
+      const angleInRadians = (servoAngle - 90) * Math.PI / 180;
+      const x = distanceInPixels * Math.cos(angleInRadians);
+      const y = distanceInPixels * Math.sin(angleInRadians);
+
+      // Calculate the position of the dot in percentages
+      const leftPercent = 50 + (x / radarSize) * 100;  // 50% for the center
+      const topPercent = 50 - (y / radarSize) * 100;   // 50% for the center
+
+      // Create the dot element and add it to the radar
+      const dot = document.createElement('div');
+      dot.classList.add('dot');
+      dot.style.left = `${leftPercent}%`;
+      dot.style.top = `${topPercent}%`;
+
+      radar.appendChild(dot);
+    }
+
+    // Listen to changes in distance and servoAngle data from Firebase
+    onValue(distanceDataRef, (snapshot) => {
+      const distance = snapshot.val();
+      const servoAngleSnapshot = ref(database, '/sensorData/servoAngle');
+      onValue(servoAngleSnapshot, (angleSnapshot) => {
+        const servoAngle = angleSnapshot.val();
+        
+        if (distance !== null && servoAngle !== null) {
+          addDotToRadar(servoAngle, distance);  // Add dot based on sensor data
+        }
+      });
+    });
   </script>
-</body>
 </html>
