@@ -3,20 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Firebase Sensor Data with Radar</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Chart.js library -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-
+  <title>Radar Animation</title>
   <style>
-    /* CSS untuk radar */
     .radar {
       position: relative;
       overflow: hidden;
       width: 300px;
       aspect-ratio: 1;
-      background: #000;
+      background: #000 url(https://i.sstatic.net/vY6Tl.png) center / cover;
       border-radius: 50%;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
     }
 
     .beam {
@@ -25,13 +20,13 @@
       left: 0;
       width: inherit;
       aspect-ratio: inherit;
-      background: rgba(255, 255, 255, 0.5);
+      background: url(https://i.sstatic.net/GCbf1.png) center / cover;
       animation: 5s rotate linear infinite;
     }
 
     @keyframes rotate {
       100% {
-        transform: rotate(1turn);
+        rotate: 1turn;
       }
     }
 
@@ -47,93 +42,46 @@
       box-shadow: 0 0 10px 5px rgba(100, 255, 0, 0.5);
       opacity: 0;
     }
-
-    .container {
-      text-align: center;
-      margin-top: 50px;
-    }
-
-    h1, h2 {
-      font-family: 'Arial', sans-serif;
-    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Firebase Sensor Data</h1>
-    <h2>Distance Sensor Radar</h2>
-    <div class="radar">
-      <div class="beam"></div>
-      <!-- Example dots, to be updated dynamically with Firebase data -->
-      <div class="dot" style="--x:0.7; --y:0.2"></div>
-      <div class="dot" style="--x:0.2; --y:0.3"></div>
-      <div class="dot" style="--x:0.6; --y:0.1"></div>
-      <div class="dot" style="--x:0.4; --y:0.6"></div>
-      <div class="dot" style="--x:0.9; --y:0.7"></div>
-    </div>
+  <div class="radar">
+    <div class="beam"></div>
+    <div class="dot" style="--x:0.7; --y:0.2"></div>
+    <div class="dot" style="--x:0.2; --y:0.3"></div>
+    <div class="dot" style="--x:0.6; --y:0.1"></div>
+    <div class="dot" style="--x:0.4; --y:0.6"></div>
+    <div class="dot" style="--x:0.9; --y:0.7"></div>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyDRZfCQmKFdjUwuW-lq4P5S3k2wntpP26E",
-      authDomain: "wifiscanfirebase.firebaseapp.com",
-      databaseURL: "https://wifiscanfirebase-default-rtdb.firebaseio.com",
-      projectId: "wifiscanfirebase",
-      storageBucket: "wifiscanfirebase.appspot.com",
-      messagingSenderId: "586448397048",
-      appId: "1:586448397048:web:dea539e352789765a1910d",
-      measurementId: "G-CZXPR54MTV"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const database = getDatabase(app);
-
-    const distanceDataRef = ref(database, '/sensorData/distance');
-    const servoAngleDataRef = ref(database, '/sensorData/servoAngle');
-
-    const elRadar = document.querySelector('.radar');
-    const elBeam = elRadar.querySelector('.beam');
-    const elsDot = elRadar.querySelectorAll('.dot');
-
+  <script>
+    const getCSSVal = (e, v) => e.style.getPropertyValue(v);
+    const mod = (n, m) => ((n % m) + m) % m; // Fix negative Modulo
     const PI = Math.PI;
     const TAU = PI * 2;
-    const mod = (n, m) => ((n % m) + m) % m; // Fix negative modulo
 
-    const getCSSVal = (e, v) => e.style.getPropertyValue(v);
+    const radar = (elRadar) => {
+      const elBeam = elRadar.querySelector(".beam");
+      const elsDot = elRadar.querySelectorAll(".dot");
 
-    const updateRadar = (distance, angle) => {
-      const beamAngle = mod(angle, 360);  // Normalize the angle
+      const update = () => {
+        const beamAngle = parseFloat(getComputedStyle(elBeam).getPropertyValue("rotate")) * PI / 180 || 0;
 
-      elsDot.forEach((elDot, i) => {
-        const x = parseFloat(getCSSVal(elDot, "--x")) - 0.5;
-        const y = parseFloat(getCSSVal(elDot, "--y")) - 0.5;
-        const dotAngle = mod(Math.atan2(y, x), TAU);
-        const opacity = mod(dotAngle - beamAngle * (PI / 180), TAU) / TAU;
-        elDot.style.opacity = opacity;
-      });
+        elsDot.forEach(elDot => {
+          const x = getCSSVal(elDot, "--x") - 0.5;
+          const y = getCSSVal(elDot, "--y") - 0.5;
+          const dotAngle = mod(Math.atan2(y, x), TAU);
+          const opacity = mod(dotAngle - beamAngle, TAU) / TAU;
+          elDot.style.opacity = opacity;
+        });
 
-      elBeam.style.transform = `rotate(${beamAngle}deg)`;  // Update the beam rotation
+        requestAnimationFrame(update);
+      };
+
+      update();
     };
 
-    // Listen to Firebase data and update radar
-    onValue(distanceDataRef, (snapshot) => {
-      const distance = snapshot.val();
-      if (distance !== null) {
-        onValue(servoAngleDataRef, (angleSnapshot) => {
-          const angle = angleSnapshot.val();
-          if (angle !== null) {
-            updateRadar(distance, angle);  // Update radar based on new data
-          }
-        });
-      }
-    });
+    document.querySelectorAll(".radar").forEach(radar);
   </script>
-
-  <!-- Bootstrap JS (optional, for advanced Bootstrap features) -->
-  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
 </body>
 </html>
