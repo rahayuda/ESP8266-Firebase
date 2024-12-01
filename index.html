@@ -39,7 +39,7 @@
     // Initialize radar chart
     function createRadarChart(distance, servoAngle) {
       if (radarChart) {
-        radarChart.destroy();
+        radarChart.destroy();  // Destroy the previous chart before creating a new one
       }
 
       // Convert servo angle to radians for chart calculation
@@ -64,6 +64,9 @@
         },
         options: {
           responsive: true,
+          animation: {
+            duration: 0  // Set animation duration to 0 for smooth updates
+          },
           scales: {
             r: {
               suggestedMin: 0,
@@ -74,14 +77,23 @@
       });
     }
 
-    // Update radar chart with data from Firebase
-    onValue(distanceDataRef, (snapshot) => {
-      const distance = snapshot.val();
-      const servoAngle = (snapshot.val() !== null ? snapshot.val() : 0);
-      if (distance !== null && servoAngle !== null) {
-        createRadarChart(distance, servoAngle);
-      }
-    });
+    // Function to update radar chart every time the data changes
+    function updateRadarChart() {
+      onValue(distanceDataRef, (snapshot) => {
+        const distance = snapshot.val();
+        const servoAngleSnapshot = ref(database, '/sensorData/servoAngle');
+        onValue(servoAngleSnapshot, (angleSnapshot) => {
+          const servoAngle = angleSnapshot.val();
+          if (distance !== null && servoAngle !== null) {
+            createRadarChart(distance, servoAngle);
+          }
+        });
+      });
+    }
+
+    // Set an interval to continuously update the chart with data from Firebase
+    setInterval(updateRadarChart, 1000); // Update chart every second
+
   </script>
 </body>
 </html>
